@@ -2,21 +2,54 @@
 #include "Walnut/Image.h"
 #include <memory>
 #include "glm/glm.hpp"
+#include "Camera.h"
+#include "Ray.h"
+#include "Scene.h"
 class Renderer
 {
+public:
+	struct Settings 
+	{
+		bool Accumulate = true;
+		bool SlowRender = true;
+	};
+
 public:
 	Renderer() = default;
 	
 	void OnResize(uint32_t width, uint32_t height);	//µ÷Õû´°¿Ú³ß´ç
 
-	void Render();
+	void Render(const Scene& scene,const Camera& camera);
 
-	std::shared_ptr<Walnut::Image> GetFinalImage() { return m_FinalImage; }
+	std::shared_ptr<Walnut::Image> GetFinalImage() const { return m_FinalImage; }
+	void ResetFrameIndex() { m_FrameIndex = 1; };
+	Settings& GetSettings() { return m_Settings; };
 
 private:
-	uint32_t PerPixel(glm::vec2 coord);
+	struct HitPayload
+	{
+		float HitDistance;
+		glm::vec3 WorldPosition;
+		glm::vec3 WorldNormal;
+
+		int ObjectIndex;
+	};
+
+
+	glm::vec4 PerPixel(uint32_t x, uint32_t y);
+	HitPayload TraceRay(const Ray& ray);
+	HitPayload ClosestT(const Ray& ray, float HitDistance, int ObjectIndex);
+	HitPayload Miss(const Ray& ray);
+
 private:
 	std::shared_ptr<Walnut::Image> m_FinalImage;
+	const Camera* m_ActiveCamera = nullptr;
+	const Scene* m_ActiveScene = nullptr;
+	Settings m_Settings;
+	std::vector<uint32_t> m_ImageHorizontalIter, m_ImageVerticalIter;
+
 	uint32_t* m_ImageData = nullptr;
+	glm::vec4* m_AccumulationData = nullptr;
+	uint32_t m_FrameIndex = 1;
 };
 
